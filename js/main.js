@@ -27,58 +27,29 @@
     
     function lights() {
        
-        var corner_intensity = 1;
-        lightTL = new THREE.PointLight( 0xffffff,corner_intensity,600);
-        lightTL.position = {
-            x : -100,
-            y : 100,
-            z : 00,
-        }
-        lightTR = new THREE.PointLight( 0xffffff,corner_intensity,300);
-        lightTR.position = {
-            x : 100,
-            y : 100,
-            z : 00,
-        }
-        lightBL = new THREE.PointLight( 0xffffff,corner_intensity,300);
-        lightBL.position = {
-            x : -100,
-            y : -100,
-            z : 0,
-        }
-        lightBR = new THREE.PointLight( 0xffffff,corner_intensity,300);
-        lightBR.position = {
-            x : 100,
-            y : -100,
-            z : 0,
-        }
-        //scene.add( lightTL );
+        
 
-        lightmid = new THREE.PointLight( 0xffffff,1,300);
+        lightmid = new THREE.PointLight( 0xffffff,1,1000);
         lightmid.position = {
             x : 0,
             y : 0,
-            z : 0,
+            z : -300,
         }
         scene.add( lightmid );  
-        //scene.add( lightTR );  
-        //scene.add( lightBL );  
-        //scene.add( lightBR );  
+         
+        light = new THREE.DirectionalLight( 0xffffff,1);
+        light.postion = {
+            x:1,
+            y:0,
+            z:0
+        }
+        light.position.normalize()
 
-        //light = new THREE.DirectionalLight( 0xffffff,0.11);
-        //light.position = {
-         //   x : 0,
-            //y : 0,
-           // z : -10,
-       // }
-       // scene.add( light );
-   // light = new THREE.AmbientLight( 0xffffff);
-
-     //   scene.add( light );   
+        //scene.add( light );   
     }
     function camera() {
         camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
-        camera.position.set( 40, 20, -320 );
+        camera.position.set( 40, 20, -550 );
         scene.add( camera );
         camera.lookAt( scene.position );
     }
@@ -87,29 +58,27 @@
         //To use enter the axis length
         debugaxis(1000);
 
-        var geometry = new THREE.CubeGeometry( 220, 220, 220, 1, 1, 1, [], { px: true, nx: true, py: true, ny: true, pz: false, nz: false } );
+        var geometry = new THREE.CubeGeometry( 420, 420, 420, 1, 1, 1, [], { px: true, nx: true, py: true, ny: true, pz: false, nz: false } );
 
         object = new THREE.Mesh( 
                             geometry,
                             new THREE.MeshPhongMaterial({
-                                //ambient: 0xff0000,
-                                color: 0xeeeeee,
-                                specular:0xeeeeee, 
-                                shininess: 3, 
+                                ambient: 0xffffff,
+                                color: 0xffffff, 
                                 shading: THREE.SmoothShading 
                             })
                     );
         object.doubleSided=true
         sphere = new THREE.Mesh(new THREE.SphereGeometry(20, 50, 50), 
              new THREE.MeshLambertMaterial({
-                                ambient: 0xffffff,
+                                //ambient: 0xffffff,
                                 color: 0xffffff,
                                 specular:0xffffff, 
                                 shininess: 10, 
                                 shading: THREE.SmoothShading 
                             })
         );
-        sphere.overdraw = true;
+       // sphere.overdraw = true;
         scene.add(sphere);
 
         scene.add(object)

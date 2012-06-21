@@ -15,12 +15,7 @@
 
         renderer = new THREE.WebGLRenderer();
         renderer.setSize( window.innerWidth, window.innerHeight );
-        microphysics = new THREEx.Microphysics({
-            timStep : 1/180
-        });
-        microphysics.start();
-        
-       // microphysics.world().add(gravity);
+       
         lights();
         camera();
         action();
@@ -75,28 +70,6 @@
         right_side.position.x=200;
         right_side.rotation.z=Math.PI/2;
         bottom_side.position.y=-200;
-        //debugger;
-        microphysics.bindMesh(left_side, {
-            physics : {
-                restitution : 1
-            }
-        });
-        microphysics.bindMesh(right_side, {
-            physics : {
-                restitution : 1
-            }
-        });
-        microphysics.bindMesh(top_side, {
-            physics : {
-                restitution : 1
-            }
-        });
-        microphysics.bindMesh(bottom_side, {
-            physics : {
-                restitution : 1
-            }
-        });
-
 
         sphere = new THREE.Mesh(new THREE.SphereGeometry(20, 50, 50), 
              new THREE.MeshLambertMaterial({
@@ -112,17 +85,6 @@
 
 
         scene.add(sphere);
-        microphysics.bindMesh(sphere, {
-            physics     : {
-                restitution : 0.8
-            }
-        });
-        microphysics.body(sphere).setVelocity((Math.random()-0.5), (Math.random()-0.5)*4, Math.random()-0.5); 
-       
-        microphysics.body(sphere).events.on('contact', function(event, otherBody){
-console.log(event,otherBody)
-})
-
        
     }
 
@@ -145,7 +107,7 @@ console.log(event,otherBody)
     function animate() {
         requestAnimationFrame( animate );
         stats.begin();
-        microphysics.update();  
+       
         render();
         stats.end()
     }

@@ -15,7 +15,12 @@
 
         renderer = new THREE.WebGLRenderer();
         renderer.setSize( window.innerWidth, window.innerHeight );
-       
+        microphysics = new THREEx.Microphysics({
+            timStep : 1/180
+        });
+        microphysics.start();
+        
+       // microphysics.world().add(gravity);
         lights();
         camera();
         action();
@@ -56,7 +61,7 @@
 
     function action() {
         //To use enter the axis length
-        debugaxis(1000);
+        //debugaxis(1000);
         var left_side = createSide();
         var top_side = createSide();
         var right_side = createSide();
@@ -66,11 +71,32 @@
         left_side.position.x=-200;
         left_side.rotation.z=Math.PI/2;
         top_side.position.y=200;
-        //top_side.rotation.x=-400;
+        
         right_side.position.x=200;
         right_side.rotation.z=Math.PI/2;
         bottom_side.position.y=-200;
-        //bottom_side.rotation.x=-400;
+        //debugger;
+        microphysics.bindMesh(left_side, {
+            physics : {
+                restitution : 1
+            }
+        });
+        microphysics.bindMesh(right_side, {
+            physics : {
+                restitution : 1
+            }
+        });
+        microphysics.bindMesh(top_side, {
+            physics : {
+                restitution : 1
+            }
+        });
+        microphysics.bindMesh(bottom_side, {
+            physics : {
+                restitution : 1
+            }
+        });
+
 
         sphere = new THREE.Mesh(new THREE.SphereGeometry(20, 50, 50), 
              new THREE.MeshLambertMaterial({
@@ -81,20 +107,27 @@
                                 shading: THREE.SmoothShading 
                             })
         );
-        
-        sphere.vx=Math.random();
-        sphere.vy=Math.random();
-        sphere.vz=Math.random();
-        
+        sphere.position.x=110;
+        sphere.position.y=100;
 
 
         scene.add(sphere);
+        microphysics.bindMesh(sphere, {
+            physics     : {
+                restitution : 0.8
+            }
+        });
+        microphysics.body(sphere).setVelocity((Math.random()-0.5), (Math.random()-0.5)*4, Math.random()-0.5); 
+       
+        microphysics.body(sphere).events.on('contact', function(event, otherBody){
+console.log(event,otherBody)
+})
 
        
     }
 
     function createSide() {
-        var side_geo = new THREE.CubeGeometry(400,1,800)
+        var side_geo = new THREE.CubeGeometry(400,22,800)
         var side_params = {
                             ambient: 0xffffff,
                             color: 0xffffff, 
@@ -112,43 +145,20 @@
     function animate() {
         requestAnimationFrame( animate );
         stats.begin();
+        microphysics.update();  
         render();
         stats.end()
     }
+
     radius=50;
+
     function render() {
         theta += 3;
-        sphere.position.x+=sphere.vx;
-        sphere.position.y+=sphere.vy;
-        sphere.position.z+=sphere.vz;
-    
-        checkCollisions();
+        //sphere.position.x+=sphere.vx;
+        //sphere.position.y+=sphere.vy;
+        //sphere.position.z+=sphere.vz;
         //camera.lookAt( scene.position );
        
         renderer.render( scene, camera );
-
-    }
-    function checkCollisions() {
-        var velocity_vector = new THREE.Vector3(sphere.vx,sphere.vy,sphere.vz);
-        var ray = new THREE.Ray(sphere.position,velocity_vector);
-        var intersects = ray.intersectObjects(solid_objects);
-        if(intersects.length > 0){
-            var x1 = sphere.position.x;
-            var y1 = sphere.position.y;
-            var z1 = sphere.position.z;
-            var x2 = intersects[ 0 ].point.x;
-            var y2 = intersects[ 0 ].point.y;
-            var z2 = intersects[ 0 ].point.z;
-            var distance = Math.sqrt( Math.pow( x1 - x2, 2 ) + Math.pow( y1 - y2, 2 ) + Math.pow( z1 - z2, 2 ) );
-            if(distance <= sphere.boundRadius){
-                //intersects[ 0 ].object.material.color.setHex( 0xff0000 );
-                console.log('hit!');
-
-                console.log(intersects[ 0 ])
-
-            }
-        }
-
-
 
     }

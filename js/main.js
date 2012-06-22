@@ -2,6 +2,12 @@
 
 var camera, scene, renderer,
 geometry, material, mesh;
+speed_multiplier = 20;
+
+var player_size = {
+    width:100,
+    height:100
+}
 
 var radius = 400;
 var theta = 0;
@@ -20,7 +26,7 @@ function init() {
     scene = new THREE.Scene();
 
     renderer = new THREE.WebGLRenderer();
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize( window.innerWidth-10, window.innerHeight-10 );
    
     lights();
     camera();
@@ -32,33 +38,43 @@ function init() {
 }
 
 function lights() {
-   
-    
 
     lightmid = new THREE.PointLight( 0xffffff,1,1000);
     lightmid.position = {
         x : 0,
         y : 0,
-        z : 500,
+        z : 0,
     }
-    scene.add( lightmid );
+    //scene.add( lightmid );
+    lightbehind = new THREE.PointLight( 0xffffff,1,1000);
+    lightbehind.position = {
+        x : 0,
+        y : 0,
+        z : (pong_box.depth/2)+100,
+    }
+    //scene.add( lightbehind );
+
+    sphere_light= new THREE.PointLight( 0xffffff,0.5,500);
+    sphere_light.position = {
+        x : 0,
+        y : 0,
+        z : 0,
+    }
+    scene.add( sphere_light );
 
     var amb_light = new THREE.AmbientLight(0xffffff);
     //scene.add(amb_light)  
      
-    light = new THREE.DirectionalLight( 0xffffff,1);
-    light.postion = {
-        x:1,
-        y:101,
-        z:1
-    }
-    light.position.normalize()
-
-    //scene.add( light );   
+    light = new THREE.DirectionalLight( 0xffffff,1,400);
+    light.position = new THREE.Vector3(1,1,1)
+    scene.add( light );  
+    light = new THREE.DirectionalLight( 0xffffff,1,400);
+    light.position = new THREE.Vector3(-1,1,1)
+    scene.add( light ); 
 }
 function camera() {
     camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.set( 10, 110, (pong_box.depth/2)+200 );
+    camera.position.set( 0, 0, (pong_box.depth/2)+300 );
     scene.add( camera );
     camera.lookAt( scene.position );
 }
@@ -81,20 +97,20 @@ function action() {
     bottom_side.position.y=-200;
 
     player = new THREE.Mesh( 
-                         new THREE.CubeGeometry(40,40,1),
+                         new THREE.CubeGeometry(player_size.width,player_size.height,3),
                         new THREE.MeshLambertMaterial({
-                            ambient: 0x44440ff,
-                            color: 0x4444ff,
+                            
+                            color: 0xffffff,
                             shading: THREE.SmoothShading 
                         })
                 );
-    player.material.opacity=0.5;
+    player.material.opacity=0.3;
     player.material.transparent=true;
-    console.log(player)
+ 
     player.position.z=pong_box.depth/2
     scene.add(player)
 
-    sphere = new THREE.Mesh(new THREE.SphereGeometry(20, 50, 50), 
+    sphere = new THREE.Mesh(new THREE.SphereGeometry(20,40,40), 
          new THREE.MeshLambertMaterial({
                             ambient: 0xffffff,
                             color: 0xffffff,
@@ -103,45 +119,47 @@ function action() {
                             shading: THREE.SmoothShading 
                         })
     );
-    sphere.position.x=110;
-    sphere.position.y=100;
+    sphere.position.x=0;
+    sphere.position.y=0;
 
-    sphere.vx=Math.random()-0.5;
-    sphere.vy=Math.random()-0.5;
-    sphere.vz=Math.random()-0.5;
+    sphere.vx=(Math.random()-0.5)*(speed_multiplier/2);
+    sphere.vy=(Math.random()-0.5)*(speed_multiplier/2);
+
+    sphere.vz=(Math.random()*2-2)*speed_multiplier;
+    console.log(sphere.vz)
 
     scene.add(sphere);
 
+
+    player_plane = new THREE.Mesh(new THREE.PlaneGeometry(pong_box.width,pong_box.height),
+                                        new THREE.MeshBasicMaterial({ color: 0xffffff, opacity: 0, transparent: true })
+                                    )
+    player_plane.rotation.x=Math.PI/2;
+    player_plane.position.z=pong_box.depth/2;
+
+    scene.add(player_plane)
     keyboard = new THREEx.KeyboardState();
-    //renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
+    renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
 
 }
-var mouse= {}
-function onDocumentMouseMove( event ) {
 
-                event.preventDefault();
-
-                mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-                mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
-                player.position.x=event.clientX/10;
-                player.position.y=event.clientY/10;
-
-            }
-
+var mouse2D = new THREE.Vector2(0, 0);
+var mouse3D = new THREE.Vector3(0, 0, 0);
+var SELECTED;
 
 function createSide() {
     var side_geo = new THREE.CubeGeometry(pong_box.width,2,pong_box.depth)
     var side_params = {
-                        ambient: Math.random()*0xffffff,
+                        ambient:0xffffff,
                         color: Math.random()*0xffffff,
                         specular:Math.random()*0xffffff, 
+                        shininess:10,
                         shading: THREE.SmoothShading 
                     }
 
     object = new THREE.Mesh( 
                         side_geo,
-                        new THREE.MeshLambertMaterial(side_params)
+                        new THREE.MeshPhongMaterial(side_params)
                 );
      scene.add(object)
     return object;
@@ -149,7 +167,7 @@ function createSide() {
 
 function animate() {
     requestAnimationFrame( animate );
-   //setTimeout(animate,2000);
+    //setTimeout(animate,2000);
     stats.begin();
 
     playerMovement();
@@ -166,14 +184,33 @@ function checkCollisions() {
     if (Math.abs(sphere.position.y) >= top_side.position.y) {
         sphere.vy*=-1;
     }
+    if (sphere.position.z < (pong_box.depth/2)*-1) {
+        sphere.vz*=-1;
+    }
+    //check for player collisions
+    if (sphere.vz > 0 && numCloseTo(sphere.position.z, pong_box.depth/2, 40)) {
+        //console.log(Math.abs(sphere.position.z-(pong_box.depth/2)))
+        var x_hit = numCloseTo(sphere.position.x, player.position.x,player_size.width);
+        var y_hit = numCloseTo(sphere.position.y, player.position.y,player_size.height);
+            console.log(x_hit,sphere.position.x,player.position.x)
+            console.log(y_hit,sphere.position.y,player.position.y)
+        if (x_hit && y_hit) {
+            sphere.vz*=-1;
+        }
+        
+    }
 }
 
-speed_multiplier = 10;
+
 function moveBall() {
 
-    sphere.position.x+=sphere.vx*speed_multiplier;
-    sphere.position.y+=sphere.vy*speed_multiplier;
-    sphere.position.z+=sphere.vz*speed_multiplier;
+    sphere.position.x+=sphere.vx;
+    sphere.position.y+=sphere.vy;
+    sphere.position.z+=sphere.vz;
+
+    sphere_light.position.x = sphere.position.x;
+    sphere_light.position.y = sphere.position.y;
+    sphere_light.position.z = sphere.position.z;
     //console.log(sphere.position.x,sphere.position.y,sphere.position.z)
 }
 
@@ -203,6 +240,29 @@ function playerMovement() {
     if (keyboard.pressed("down")) {
         player.position.y-=player_move_speed;
     }
+}
+function onDocumentMouseMove(event) {
+    event.preventDefault();
+
+    mouse3D.x = mouse2D.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse3D.y = mouse2D.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    mouse3D.z = 0.5;
+    var projector = new THREE.Projector();
+    projector.unprojectVector(mouse3D, camera);
+
+    var ray = new THREE.Ray(camera.position, mouse3D.subSelf(camera.position).normalize());
+
+    var intersects = ray.intersectObject(player_plane);
+
+    if (intersects.length > 0) {
+        player.position.x=intersects[0].point.x
+        player.position.y=intersects[0].point.y
+    }
+}
+
+
+function numCloseTo(num,target,range) {
+    return num >= target-(range/2) && num <= target + (range/2);
 }
 
 

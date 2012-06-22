@@ -2,7 +2,7 @@
 
 var camera, scene, renderer,
 geometry, material, mesh;
-speed_multiplier = 20;
+speed_multiplier = 15;
 
 var player_size = {
     width:100,
@@ -17,6 +17,7 @@ var pong_box = {
         height:400,
         depth:800
 }
+var sphere_radius=20;
 
 window.onload=function() { init(); };
 
@@ -27,7 +28,9 @@ function init() {
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth-10, window.innerHeight-10 );
-   
+    
+    scene.fog = new THREE.FogExp2( 0x000000, 0.001 );
+
     lights();
     camera();
     action();
@@ -45,16 +48,16 @@ function lights() {
         y : 0,
         z : 0,
     }
-    //scene.add( lightmid );
-    lightbehind = new THREE.PointLight( 0xffffff,1,1000);
+  //  scene.add( lightmid );
+    lightbehind = new THREE.PointLight( 0xffffff,1,1300);
     lightbehind.position = {
         x : 0,
         y : 0,
-        z : (pong_box.depth/2)+100,
+        z : (pong_box.depth/2)+50,
     }
     //scene.add( lightbehind );
 
-    sphere_light= new THREE.PointLight( 0xffffff,0.5,500);
+    sphere_light= new THREE.PointLight( 0xffffff,1,500);
     sphere_light.position = {
         x : 0,
         y : 0,
@@ -65,16 +68,22 @@ function lights() {
     var amb_light = new THREE.AmbientLight(0xffffff);
     //scene.add(amb_light)  
      
-    light = new THREE.DirectionalLight( 0xffffff,1,400);
+    light = new THREE.DirectionalLight( 0xffffff,0.7,400);
     light.position = new THREE.Vector3(1,1,1)
     scene.add( light );  
-    light = new THREE.DirectionalLight( 0xffffff,1,400);
+    light = new THREE.DirectionalLight( 0xffffff,0.7,400);
     light.position = new THREE.Vector3(-1,1,1)
+    scene.add( light );
+    light = new THREE.DirectionalLight( 0xffffff,0.5,400);
+    light.position = new THREE.Vector3(1,-1,1)
+    scene.add( light );  
+    light = new THREE.DirectionalLight( 0xffffff,0.5,400);
+    light.position = new THREE.Vector3(-1,-1,1)
     scene.add( light ); 
 }
 function camera() {
     camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.set( 0, 0, (pong_box.depth/2)+300 );
+    camera.position.set( 0, 190, (pong_box.depth/2)+300 );
     scene.add( camera );
     camera.lookAt( scene.position );
 }
@@ -104,13 +113,13 @@ function action() {
                             shading: THREE.SmoothShading 
                         })
                 );
-    player.material.opacity=0.3;
+    player.material.opacity=0.2;
     player.material.transparent=true;
  
     player.position.z=pong_box.depth/2
     scene.add(player)
 
-    sphere = new THREE.Mesh(new THREE.SphereGeometry(20,40,40), 
+    sphere = new THREE.Mesh(new THREE.SphereGeometry(sphere_radius,10,10), 
          new THREE.MeshLambertMaterial({
                             ambient: 0xffffff,
                             color: 0xffffff,
@@ -126,7 +135,8 @@ function action() {
     sphere.vy=(Math.random()-0.5)*(speed_multiplier/2);
 
     sphere.vz=(Math.random()*2-2)*speed_multiplier;
-    console.log(sphere.vz)
+   // sphere.vz=-1;
+    console.log(sphere)
 
     scene.add(sphere);
 
@@ -148,7 +158,7 @@ var mouse3D = new THREE.Vector3(0, 0, 0);
 var SELECTED;
 
 function createSide() {
-    var side_geo = new THREE.CubeGeometry(pong_box.width,2,pong_box.depth)
+    var side_geo = new THREE.CubeGeometry(pong_box.width,1,pong_box.depth)
     var side_params = {
                         ambient:0xffffff,
                         color: Math.random()*0xffffff,
@@ -178,10 +188,10 @@ function animate() {
     stats.end()
 }
 function checkCollisions() {
-    if (Math.abs(sphere.position.x) >= right_side.position.x) {
+    if (Math.abs(sphere.position.x) + sphere_radius >= right_side.position.x) {
         sphere.vx*=-1;
     }
-    if (Math.abs(sphere.position.y) >= top_side.position.y) {
+    if (Math.abs(sphere.position.y) + sphere_radius >= top_side.position.y) {
         sphere.vy*=-1;
     }
     if (sphere.position.z < (pong_box.depth/2)*-1) {
@@ -255,8 +265,9 @@ function onDocumentMouseMove(event) {
     var intersects = ray.intersectObject(player_plane);
 
     if (intersects.length > 0) {
-        player.position.x=intersects[0].point.x
-        player.position.y=intersects[0].point.y
+        intersect = intersects[0];
+        player.position.x = intersect.point.x
+        player.position.y = intersect.point.y
     }
 }
 

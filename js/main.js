@@ -2,7 +2,8 @@
 
 var camera, scene, renderer,
 geometry, material, mesh;
-speed_multiplier = 15;
+sphere_speed=1;
+speed_multiplier = 25;
 
 var player_size = {
     width:100,
@@ -15,7 +16,7 @@ var theta = 0;
 var pong_box = {
         width:400,
         height:400,
-        depth:800
+        depth:1200
 }
 var sphere_radius=20;
 
@@ -29,7 +30,7 @@ function init() {
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth-10, window.innerHeight-10 );
     
-    scene.fog = new THREE.FogExp2( 0x000000, 0.001 );
+    scene.fog = new THREE.FogExp2( 0x000000, 0.0006 );
 
     lights();
     camera();
@@ -42,20 +43,17 @@ function init() {
 
 function lights() {
 
-    lightmid = new THREE.PointLight( 0xffffff,1,1000);
-    lightmid.position = {
-        x : 0,
-        y : 0,
-        z : 0,
-    }
-  //  scene.add( lightmid );
-    lightbehind = new THREE.PointLight( 0xffffff,1,1300);
+   
+    lightbehind = new THREE.PointLight( 0xffffff,1,600);
     lightbehind.position = {
         x : 0,
         y : 0,
         z : (pong_box.depth/2)+50,
     }
-    //scene.add( lightbehind );
+    scene.add( lightbehind );
+
+
+
 
     sphere_light= new THREE.PointLight( 0xffffff,1,500);
     sphere_light.position = {
@@ -63,7 +61,7 @@ function lights() {
         y : 0,
         z : 0,
     }
-    scene.add( sphere_light );
+   // scene.add( sphere_light );
 
     var amb_light = new THREE.AmbientLight(0xffffff);
     //scene.add(amb_light)  
@@ -76,14 +74,14 @@ function lights() {
     scene.add( light );
     light = new THREE.DirectionalLight( 0xffffff,0.5,400);
     light.position = new THREE.Vector3(1,-1,1)
-    scene.add( light );  
+    //scene.add( light );  
     light = new THREE.DirectionalLight( 0xffffff,0.5,400);
     light.position = new THREE.Vector3(-1,-1,1)
-    scene.add( light ); 
+    //scene.add( light ); 
 }
 function camera() {
     camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.set( 0, 190, (pong_box.depth/2)+300 );
+    camera.position.set( 0, 0, (pong_box.depth/2)+300 );
     scene.add( camera );
     camera.lookAt( scene.position );
 }
@@ -134,7 +132,7 @@ function action() {
     sphere.vx=(Math.random()-0.5)*(speed_multiplier/2);
     sphere.vy=(Math.random()-0.5)*(speed_multiplier/2);
 
-    sphere.vz=(Math.random()*2-2)*speed_multiplier;
+    sphere.vz=(sphere_speed-0.5)*speed_multiplier;
    // sphere.vz=-1;
     console.log(sphere)
 
@@ -198,12 +196,12 @@ function checkCollisions() {
         sphere.vz*=-1;
     }
     //check for player collisions
-    if (sphere.vz > 0 && numCloseTo(sphere.position.z, pong_box.depth/2, 40)) {
+    if (sphere.vz > 0 && numCloseTo(sphere.position.z, pong_box.depth/2, speed_multiplier)) {
         //console.log(Math.abs(sphere.position.z-(pong_box.depth/2)))
         var x_hit = numCloseTo(sphere.position.x, player.position.x,player_size.width);
         var y_hit = numCloseTo(sphere.position.y, player.position.y,player_size.height);
-            console.log(x_hit,sphere.position.x,player.position.x)
-            console.log(y_hit,sphere.position.y,player.position.y)
+            //console.log(x_hit,sphere.position.x,player.position.x)
+            //console.log(y_hit,sphere.position.y,player.position.y)
         if (x_hit && y_hit) {
             sphere.vz*=-1;
         }

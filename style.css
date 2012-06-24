@@ -12,3 +12,11 @@ html,body {
 * {
  cursor: none;
 }
+#score {
+        position:absolute;
+        top:10px;
+        left:10px;
+        width:auto;
+        color:white;
+        font-size:20px;
+}

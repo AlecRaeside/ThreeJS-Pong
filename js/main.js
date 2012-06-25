@@ -1,164 +1,187 @@
+var HQ = false;
 
+var pong = {
+    player: {
+        width: 100,
+        height: 100,
+        thickness:2,
+        history: {
+            x: new Array(),
+            y: new Array()
+        }
+    },
+    opponent: {
+        follow_factor: {
+            x:0,
+            y:0
+        }
+    },
+    box: {
+        width: 500,
+        height: 400,
+        depth: 1000,
 
-var camera, scene, renderer,
-geometry, material, mesh;
-sphere_speed=1;
-speed_multiplier = 15;
+        side:function(size) {
+            var object = new THREE.Mesh( 
+                                new THREE.CubeGeometry(size,1,pong.box.depth),
+                                new THREE.MeshLambertMaterial({
+                                    ambient:0xffffff,
+                                    color: Math.random()*0xffffff,
+                                    specular:Math.random()*0xffffff, 
+                                    shininess:40,
+                                    shading: THREE.SmoothShading 
+                                })
+                            );
+            pong.scene.add(object)
+            return object;
+        }
+    },
+    ball: {
+        radius: 16,
+        speed: 15,
+        segments: 16,
+        curve_factor : -350,
+        velocity:{x:0,y:0,z:0},
+        setInitialVelocity: function() {
+            console.log(Math.random()-0.5) * (pong.ball.speed/2);
+            pong.ball.velocity.x = (Math.random()-0.5) * (pong.ball.speed/2);
+            pong.ball.velocity.y = (Math.random()-0.5) * (pong.ball.speed/2);
+            pong.ball.velocity.z = pong.ball.speed * -1
+            //console.log(pong.ball.velocity)
+        },
+        curve: {
+            x:0,
+            y:0
+        },
+    },
+    sounds: {
+        left_right: new buzz.sound("ballbounce.wav"),
+        top_bottom: new buzz.sound("ballbounce.wav"),
+        player: new buzz.sound("ballbounce2.mp3"),
+        opponent: new buzz.sound("ballbounce2.mp3")
+    },
+    score:0,
+    stop:false,
+    mouse2D : new THREE.Vector2(0, 0),
+    mouse3D : new THREE.Vector3(0, 0, 0),
+    utils: {
+        numCloseTo: function(num,target,range) {
+            return num >= target-(range/2) && num <= target + (range/2);
+        },
+        half_PI:Math.PI/2
+    }
 
-stop = false;
-
-var player_size = {
-    width:100,
-    height:100
 }
 
-var score = 0;
 
-var radius = 400;
-var theta = 0;
 
-var pong_box = {
-        width:500,
-        height:400,
-        depth:1000
-}
-var sphere_radius=20;
+//ball_sound2.setVolume( 20 )
 
-var ball_sound0 = new buzz.sound("ballbounce.wav");
-var ball_sound1 = new buzz.sound("ballbounce.wav");
-var ball_sound2 = new buzz.sound("ballbounce2.mp3");
 
-var player_ball_sound = new buzz.sound("ballbounce2.mp3");
-ball_sound2.setVolume( 20 )
+window.onload=function() { pong.init();
+ };
 
-var sounds = new buzz.group([
-    ball_sound0,
-    ball_sound1,
-    ball_sound2,
-    player_ball_sound
-])
-//sounds.mute();
+pong.init = function() {
 
-window.onload=function() { init(); };
-
-function init() {
+    pong.ball.setInitialVelocity();
+    console.log(pong.ball.velocity)
     stats = new Stats();
     document.body.appendChild( stats.domElement );
 
-    scene = new THREE.Scene();
+    pong.scene = new THREE.Scene();
 
-    renderer = new THREE.WebGLRenderer();
-    renderer.setSize( window.innerWidth-10, window.innerHeight-10 );
+    pong.renderer = new THREE.WebGLRenderer();
+    pong.renderer.setSize( window.innerWidth-10, window.innerHeight-10 );
+    if (HQ) {
+        pong.scene.fog = new THREE.FogExp2( 0x000000, 0.0006 );
+    }
+
+    pong.lights();
+    pong.camera();
+    pong.action();
     
-    scene.fog = new THREE.FogExp2( 0x000000, 0.0006 );
 
-    lights();
-    camera();
-    action();
-    
+    document.body.appendChild( pong.renderer.domElement );
+    pong.renderer.domElement.style.cursor = "none"
 
-    document.body.appendChild( renderer.domElement );
-    renderer.domElement.style.cursor = "none"
+    pong.score_el = $("<div id=score></div>");
+    $("body").prepend(pong.score_el);
 
-    score_el = $("<div id=score></div>");
-    $("body").prepend(score_el);
-
-    animate();
+    pong.animate();
 }
 
-function lights() {
+pong.lights = function() {
 
-   
-    lightbehind = new THREE.PointLight( 0xffffff,1,1900);
-    lightbehind.position = {
-        x : 0,
-        y : 0,
-        z : (pong_box.depth/2)+50,
-    }
-    //scene.add( lightbehind );
-
-    sphere_light= new THREE.PointLight( 0xffffff,1,900);
-    sphere_light.position = {
-        x : 0,
-        y : 0,
-        z : 0,
-    }
-    //scene.add( sphere_light );
-
-    var amb_light = new THREE.AmbientLight(0xffffff);
-    //scene.add(amb_light)  
-     
     light = new THREE.DirectionalLight( 0xffffff,1,400);
     light.position = new THREE.Vector3(2,1,1)
-    scene.add( light );  
+    pong.scene.add( light );  
     light = new THREE.DirectionalLight( 0xffffff,1,400);
     light.position = new THREE.Vector3(-2,1,1)
-    scene.add( light );
+    pong.scene.add( light );
     light = new THREE.DirectionalLight( 0xffffff,0.5,400);
     light.position = new THREE.Vector3(1,-1,1)
-    scene.add( light );  
-    light = new THREE.DirectionalLight( 0xffffff,0.5,400);
-    light.position = new THREE.Vector3(-1,-1,1)
-    scene.add( light ); 
-}
-function camera() {
-    camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.set( 0, 0, (pong_box.depth/2)+300 );
-    scene.add( camera );
-    camera.lookAt( scene.position );
+    pong.scene.add( light );  
+    light = new THREE.DirectionalLight( 0xffffff,1);
+    light.position = new THREE.Vector3(-1,-1,0)
+    pong.scene.add( light ); 
 }
 
-function action() {
-    //To use enter the axis length
-    //debugaxis(1000);
 
-    left_side = createSide(pong_box.height);
-    top_side = createSide(pong_box.width);
-    right_side = createSide(pong_box.height);
-    bottom_side = createSide(pong_box.width);
+pong.camera = function () {
+    pong.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+    pong.camera.position.set( 0, 0, (pong.box.depth/2)+300 );
+    pong.scene.add( pong.camera );
+    pong.camera.lookAt( pong.scene.position );
+}
 
-    left_side.position.x=-(pong_box.width/2);
-    left_side.rotation.z=Math.PI/2;
-    top_side.position.y=pong_box.height/2;
+pong.action = function() {
+
+    pong.box.left = new pong.box.side(pong.box.height);
+    pong.box.top = new pong.box.side(pong.box.width);
+    pong.box.right = new pong.box.side(pong.box.height);
+    pong.box.bottom = new pong.box.side(pong.box.width);
+
+
+    pong.box.left.position.x = - (pong.box.width/2);
+    pong.box.left.rotation.z = pong.utils.half_PI;
+    pong.box.top.position.y = pong.box.height/2;
     
-    right_side.position.x=pong_box.width/2;
-    right_side.rotation.z=Math.PI/2;
-    bottom_side.position.y=(pong_box.height/2)*-1;
+    pong.box.right.position.x = pong.box.width/2;
+    pong.box.right.rotation.z = pong.utils.half_PI;
+    pong.box.bottom.position.y = (pong.box.height/2)*-1;
 
-    player = new THREE.Mesh( 
-                         new THREE.CubeGeometry(player_size.width,player_size.height,3),
+    pong.player.mesh = new THREE.Mesh( 
+                        new THREE.CubeGeometry(pong.player.width, pong.player.height, pong.player.thickness),
                         new THREE.MeshLambertMaterial({
-                            
                             color: 0xffffff,
                             shading: THREE.SmoothShading 
                         })
                 );
-    player.material.opacity=0.25;
-    player.material.transparent=true;
+    pong.player.mesh.material.opacity = 0.25;
+    pong.player.mesh.material.transparent = true;
 
-    player.position.z=pong_box.depth/2
-    scene.add(player)
+    pong.player.mesh.position.z = pong.box.depth/2;
+    
+    pong.scene.add(pong.player.mesh)
 
-    player.x_history = new Array();
-    player.y_history = new Array();
-
-
-    opponent = new THREE.Mesh( 
-                     new THREE.CubeGeometry(player_size.width,player_size.height,3),
-                    new THREE.MeshLambertMaterial({
+    pong.opponent.mesh = new THREE.Mesh( 
+                     new THREE.CubeGeometry(pong.player.width,pong.player.height,pong.player.thickness),
+                     
+                     new THREE.MeshLambertMaterial({
                         color: 0xff5555,
                         shading: THREE.SmoothShading 
                     })
             );
-    opponent.material.opacity=0.8;
-    opponent.material.transparent=true;
-    opponent.x_follow_factor = 0;
-    opponent.y_follow_factor = 0;
-    opponent.position.z = ((pong_box.depth/2) * -1)-3
-    scene.add(opponent)
+    pong.opponent.mesh.material.opacity=0.8;
+    pong.opponent.mesh.material.transparent=true;
+
+    pong.opponent.mesh.position.x = 0;
+    pong.opponent.mesh.position.y = 0;
+    pong.opponent.mesh.position.z = ((pong.box.depth/2) * -1)-3;
+    pong.scene.add(pong.opponent.mesh)
 
 
-    sphere = new THREE.Mesh(new THREE.SphereGeometry(sphere_radius,10,10), 
+    pong.ball.mesh = new THREE.Mesh(new THREE.SphereGeometry(pong.ball.radius, pong.ball.segments, pong.ball.segments), 
          new THREE.MeshLambertMaterial({
                             ambient: 0xffffff,
                             color: 0xffffff,
@@ -167,143 +190,114 @@ function action() {
                             shading: THREE.SmoothShading 
                         })
     );
-    sphere.position.x=0;
-    sphere.position.y=0;
 
-    sphere.vx=(Math.random()-0.5)*(speed_multiplier/2);
-    sphere.vy=(Math.random()-0.5)*(speed_multiplier/2);
-    //sphere.vx=0;
-    //sphere.vy=0;
+    pong.ball.mesh.position.x = 0;
+    pong.ball.mesh.position.y = 0;
 
-    sphere.vz=(sphere_speed*-1)*speed_multiplier;
-   // sphere.vz=-1;
-    sphere.curve_x = 0;
-    sphere.curve_y = 0;
+    pong.scene.add(pong.ball.mesh);
 
-    scene.add(sphere);
-
-
-    player_plane = new THREE.Mesh(new THREE.PlaneGeometry(pong_box.width,pong_box.height),
+    pong.player.plane = new THREE.Mesh(new THREE.PlaneGeometry(pong.box.width,pong.box.height),
                                         new THREE.MeshBasicMaterial({ color: 0xffffff, opacity: 0, transparent: true })
                                     )
-    player_plane.rotation.x=Math.PI/2;
-    player_plane.position.z=pong_box.depth/2;
+    pong.player.plane.rotation.x = pong.utils.half_PI;
+    pong.player.plane.position.z = pong.box.depth/2;
 
-    scene.add(player_plane)
-    keyboard = new THREEx.KeyboardState();
-    renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
+    pong.scene.add(pong.player.plane)
+    pong.keyboard = new THREEx.KeyboardState();
+    pong.renderer.domElement.addEventListener( 'mousemove', pong.mouseMove, false );
 
-}
-
-var mouse2D = new THREE.Vector2(0, 0);
-var mouse3D = new THREE.Vector3(0, 0, 0);
-var SELECTED;
-
-function createSide(size) {
-    var side_geo = new THREE.CubeGeometry(size,1,pong_box.depth)
-    var side_params = {
-                        ambient:0xffffff,
-                        color: Math.random()*0xffffff,
-                        specular:Math.random()*0xffffff, 
-                        shininess:40,
-                        shading: THREE.SmoothShading 
-                    }
-
-    object = new THREE.Mesh( 
-                        side_geo,
-                        new THREE.MeshPhongMaterial(side_params)
-                );
-     scene.add(object)
-    return object;
 }
 
 
 // ***** per frame functions *****
 
 
-function animate() {
-    if (!stop) {
-        requestAnimationFrame( animate );
+pong.animate = function() {
+    console.log(pong.stop)
+    if (!pong.stop) {
+        requestAnimationFrame( pong.animate );
+    } else {
+        setTimeout(function() {
+            window.location.reload()
+        },500)
     }
-    //setTimeout(animate,500);
     stats.begin();
-   // console.log()
-    playerMovement();
+    pong.playerMovement();
 
     checkCollisions();
     moveBall();
-    render();
+    pong.renderer.render( pong.scene, pong.camera );
     stats.end()
 }
 function checkCollisions() {
-    if (Math.abs(sphere.position.x) + sphere_radius >= right_side.position.x &&
-        Math.abs(sphere.position.x) + sphere_radius - Math.abs(sphere.vx) <= right_side.position.x
+    if (Math.abs(pong.ball.mesh.position.x) + pong.ball.radius >= pong.box.right.position.x &&
+        Math.abs(pong.ball.mesh.position.x) + pong.ball.radius - Math.abs(pong.ball.velocity.x) <= pong.box.right.position.x
         ) {
-        ball_sound0.setVolume( getWallBounceVolume(sphere.position.z) )
-        ball_sound0.play();
-        sphere.vx*=-1;
+        pong.sounds.top_bottom.setVolume( getWallBounceVolume(pong.ball.mesh.position.z) )
+        pong.sounds.top_bottom.play();
+        pong.ball.velocity.x*=-1;
     }
-    if (Math.abs(sphere.position.y) + sphere_radius >= top_side.position.y &&
-        Math.abs(sphere.position.y) + sphere_radius - Math.abs(sphere.vy) <= top_side.position.y
+    if (Math.abs(pong.ball.mesh.position.y) + pong.ball.radius >= pong.box.top.position.y &&
+        Math.abs(pong.ball.mesh.position.y) + pong.ball.radius - Math.abs(pong.ball.velocity.y) <= pong.box.top.position.y
         ) {
         
-        sphere.vy*=-1;
-        ball_sound1.setVolume( getWallBounceVolume(sphere.position.z) )
-        ball_sound1.play();
+        pong.ball.velocity.y*=-1;
+        pong.sounds.left_right.setVolume( getWallBounceVolume(pong.ball.mesh.position.z) )
+        pong.sounds.left_right.play();
     }
-    if (sphere.position.z < (pong_box.depth/2)*-1) {
+    if (pong.ball.mesh.position.z < (pong.box.depth/2)*-1) {
 
-        var x_hit = numCloseTo(sphere.position.x, opponent.position.x,player_size.width + sphere_radius);
-        var y_hit = numCloseTo(sphere.position.y, opponent.position.y,player_size.height + sphere_radius);
+        var x_hit = pong.utils.numCloseTo(pong.ball.mesh.position.x, pong.opponent.mesh.position.x,pong.player.width + pong.ball.radius);
+        var y_hit = pong.utils.numCloseTo(pong.ball.mesh.position.y, pong.opponent.mesh.position.y,pong.player.height + pong.ball.radius);
 
         if (x_hit && y_hit) {
 
-            sphere.vz*=-1;
-            ball_sound2.play();
-            sphere.curve_x = 0;
-            sphere.curve_y = 0;
+            pong.ball.velocity.z*=-1;
+
+            pong.sounds.player.setVolume(18);
+            pong.sounds.player.play();
+            pong.ball.curve.x = 0;
+            pong.ball.curve.y = 0;
         } else {
-            stop=true;
+            pong.stop=true;
         }
     }
     //check for player collisions if ball is near player's movement plane
-    if (sphere.vz > 0 && numCloseTo(sphere.position.z, pong_box.depth/2, speed_multiplier)) {
+    if (pong.ball.velocity.z > 0 && pong.utils.numCloseTo(pong.ball.mesh.position.z, pong.box.depth/2, pong.ball.speed)) {
        
-        var x_hit = numCloseTo(sphere.position.x, player.position.x,player_size.width + sphere_radius);
-        var y_hit = numCloseTo(sphere.position.y, player.position.y,player_size.height + sphere_radius);
+        var x_hit = pong.utils.numCloseTo(pong.ball.mesh.position.x, pong.player.mesh.position.x,pong.player.width + pong.ball.radius);
+        var y_hit = pong.utils.numCloseTo(pong.ball.mesh.position.y, pong.player.mesh.position.y,pong.player.height + pong.ball.radius);
         
-        //console.log(sphere.curve_x,sphere.curve_y);
+        //console.log(pong.ball.curve_x,pong.ball.curve_y);
 
         if (x_hit && y_hit) {
-            score++;
-            score_el.html(score);
+            pong.score++;
+            pong.score_el.html(pong.score);
 
             //lower is more accurate/faster movement
-            opponent.x_follow_factor=Math.random()*0.5;
-            opponent.y_follow_factor=Math.random()*0.5;
-            console.log(opponent.follow_factor)
+            pong.opponent.follow_factor.x = Math.random()*0.4;
+            pong.opponent.follow_factor.y = Math.random()*0.4;
+            console.log(pong.opponent.follow_factor)
 
-            var x_slide = getTotalArrayDiff(player.x_history);
-            var y_slide = getTotalArrayDiff(player.y_history);
+            var x_slide = getTotalArrayDiff(pong.player.history.x);
+            var y_slide = getTotalArrayDiff(pong.player.history.y);
 
             //lower is more curve
-            var curve_factor = 200*-1;
+            
             //console.log(x_slide/curve_factor)
-            sphere.curve_x = x_slide/curve_factor;
-            sphere.curve_y = y_slide/curve_factor;
-            console.log(sphere.curve_x,sphere.curve_y);
-
-            sphere.vz*=-1;
-            player_ball_sound.play();
+            pong.ball.curve.x = x_slide/pong.ball.curve_factor;
+            pong.ball.curve.y = y_slide/pong.ball.curve_factor;
+            pong.ball.velocity.z*=-1;
+            pong.sounds.player.setVolume(90);
+            pong.sounds.player.play();
         } else {
-            stop=true;
+            pong.stop=true;
         }
         
     }
 }
 
 function getTotalArrayDiff(arr) {
-
     var arr_len = arr.length;
     var total = 0;
     for (var i=1;i<arr_len;i++) {
@@ -323,89 +317,75 @@ function getTotalArrayDiff(arr) {
     return total;
 }
 function getWallBounceVolume(sphere_z) {
-     return ( ( (sphere_z + (pong_box.depth/2) ) / pong_box.depth) * 45) + 15;
+     return ( ( (sphere_z + (pong.box.depth/2) ) / pong.box.depth) * 45) + 15;
 }
 
 
 function moveBall() {
-    sphere.vx+=sphere.curve_x;
-    sphere.vy+=sphere.curve_y;
-    sphere.position.x+=sphere.vx;
-    sphere.position.y+=sphere.vy;
-    sphere.position.z+=sphere.vz;
+    
+    pong.ball.velocity.x+=pong.ball.curve.x;
+    pong.ball.velocity.y+=pong.ball.curve.y;
+    pong.ball.mesh.position.x+=pong.ball.velocity.x;
+    pong.ball.mesh.position.y+=pong.ball.velocity.y;
+    pong.ball.mesh.position.z+=pong.ball.velocity.z;
+    
 
+    console.log(pong.opponent.mesh.position)
+    pong.opponent.mesh.position.x += pong.ball.velocity.x-(pong.opponent.follow_factor.x*pong.ball.velocity.x);
+    pong.opponent.mesh.position.y += pong.ball.velocity.y-(pong.opponent.follow_factor.y*pong.ball.velocity.y);
 
-    opponent.position.x += sphere.vx-(opponent.x_follow_factor*sphere.vx);
-    opponent.position.y += sphere.vy-(opponent.y_follow_factor*sphere.vy);
+    //pong.ball_light.position.x = pong.ball.mesh.position.x;
+    //pong.ball_light.position.y = pong.ball.mesh.position.y;
 
-    sphere_light.position.x = sphere.position.x;
-    sphere_light.position.y = sphere.position.y;
-
-    sphere_light.position.z = sphere.position.z + sphere_radius+2;
-    //console.log(sphere.position.x,sphere.position.y,sphere.position.z)
+    //pong.ball_light.position.z = pong.ball.mesh.position.z + pong.ball.radius+2;
+    //console.log(pong.ball.mesh.position.x,pong.ball.mesh.position.y,pong.ball.mesh.position.z)
 }
 
-radius=50;
-
-function render() {
-    theta += 3;
-   
-    renderer.render( scene, camera );
-
+pong.playerMovement = function() {
+    if (pong.player.history.x.length>10) {
+        pong.player.history.x.shift();
+    }    
+    if (pong.player.history.y.length>10) {
+        pong.player.history.y.shift();
+    }    
+    pong.player.history.x.push( pong.player.mesh.position.x )
+    pong.player.history.y.push( pong.player.mesh.position.y )
 }
-
-var player_move_speed = 2;
-
-function playerMovement() {
-
-    if (player.x_history.length>10) {
-        player.x_history.shift();
-    }    
-    if (player.y_history.length>10) {
-        player.y_history.shift();
-    }    
-    player.x_history.push(player.position.x)
-    player.y_history.push(player.position.y)
-
-
+pong.keyboardMovement = function() {
+    var player_move_speed = 2;
     if (keyboard.pressed("left")) {
-        player.position.x-=player_move_speed;
+        pong.player.mesh.position.x-=player_move_speed;
     }
     if (keyboard.pressed("up")) {
-        player.position.y+=player_move_speed;
+        pong.player.mesh.position.y+=player_move_speed;
     }
     if (keyboard.pressed("right")) {
-        player.position.x+=player_move_speed;
+        pong.player.mesh.position.x+=player_move_speed;
     }
     if (keyboard.pressed("down")) {
-        player.position.y-=player_move_speed;
+        pong.player.mesh.position.y-=player_move_speed;
     }
 }
 
-function onDocumentMouseMove(event) {
+pong.mouseMove = function(event) {
     event.preventDefault();
 
-    mouse3D.x = mouse2D.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse3D.y = mouse2D.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    mouse3D.z = 0.5;
+    pong.mouse3D.x = pong.mouse2D.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pong.mouse3D.y = pong.mouse2D.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    pong.mouse3D.z = 0.5;
     var projector = new THREE.Projector();
-    projector.unprojectVector(mouse3D, camera);
+    projector.unprojectVector(pong.mouse3D, pong.camera);
 
-    var ray = new THREE.Ray(camera.position, mouse3D.subSelf(camera.position).normalize());
+    var ray = new THREE.Ray(pong.camera.position, pong.mouse3D.subSelf(pong.camera.position).normalize());
 
-    var intersects = ray.intersectObject(player_plane);
+    var intersects = ray.intersectObject(pong.player.plane);
 
     if (intersects.length > 0) {
-        intersect = intersects[0];
-        player.position.x = intersect.point.x;
-        player.position.y = intersect.point.y;
+        var intersect = intersects[0];
+        pong.player.mesh.position.x = intersect.point.x;
+        pong.player.mesh.position.y = intersect.point.y;
     }
-
-
-
 }
 
 
-function numCloseTo(num,target,range) {
-    return num >= target-(range/2) && num <= target + (range/2);
-}
+

@@ -73,13 +73,53 @@ var pong = {
     },
     score:  {
         _score: 0,
-        dom_el:null,
-        changeScore:function(score_change) {
-            this._score+=score_change;
-            this.updateScore()
+        _top_score:  0 ,
+        total_el:null,
+        top_el:null,
+        ticker_el:null,
+        init: function() {
+
+            this._top_score = localStorage.getItem("pong-top-score") || 0;
+            var score_dom_el = $("#score");
+            pong.score.total_el = score_dom_el.find("#score-total");
+            pong.score.top_el = score_dom_el.find("#score-top");
+            pong.score.ticker_el = score_dom_el.find("#score-ticker");
+            pong.score.top_el.html("top score: "+ this._top_score )
         },
-        updateScore:function() {
-            this.dom_el.html(this._score)
+        changeScore:function(score_change,text) {
+            //console.log(score_change)
+            this._score+=score_change;
+            
+            if (this._score>this._top_score) {
+                localStorage["pong-top-score"] = this._score;
+                this._top_score = this._score;
+            }
+            this.displayScore(score_change,text)
+            if (typeof text !== "undefined") {
+                this.addtoScoreTicker(score_change,text)
+            }
+            
+        },
+        displayScore:function() {
+            this.total_el.html(this._score);
+
+            if (this._score>=this._top_score) {
+                //alert(1)
+                this.top_el.html("top score:"+this._score)
+            }
+            
+
+        },
+        addtoScoreTicker: function(score_change,text) {
+            
+            var score_msg = $("<div class='score-ticker-msg'><span class='score-ticker-desc'>"+ text +"</span> <span class='score-ticker-pts'>"+score_change+"</span></div>")
+            this.ticker_el.prepend(score_msg);
+            setTimeout(function() {
+               score_msg.addClass("fade")
+            },2000)
+            setTimeout(function() {
+                 score_msg.remove();
+            },4000);
         }
     },
     stop:false,
@@ -106,7 +146,8 @@ pong.initializePage = function() {
     pong.scene = new THREE.Scene();
 
     pong.renderer = new THREE.WebGLRenderer();
-    pong.renderer.setSize( window.innerWidth-10, window.innerHeight-10 );
+    //pong.renderer.setSize( window.innerHeight-10, window.innerHeight-10 );
+    pong.renderer.setSize( window.innerWidth-100, window.innerHeight );
     if (HQ) {
         pong.scene.fog = new THREE.FogExp2( 0x000000, 0.0006 );
     }
@@ -118,7 +159,8 @@ pong.initializePage = function() {
     document.body.appendChild( pong.renderer.domElement );
     pong.renderer.domElement.style.cursor = "none"
 
-    pong.score.dom_el = $("<div id=score></div>");
+    pong.score.init()
+
     $("body").prepend(pong.score.dom_el);
 
     pong.startRound();
@@ -134,6 +176,9 @@ pong.startRound = function() {
     ball.velocity.x = (Math.random()-0.5) * (ball.speed/2);
     ball.velocity.y = (Math.random()-0.5) * (ball.speed/2);
     ball.velocity.z = ball.speed * -1;
+
+    ball.curve.x = 0;
+    ball.curve.y = 0;
    
     pong.animate();
 }
@@ -157,7 +202,7 @@ pong.lights = function() {
 
 
 pong.camera = function () {
-    pong.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+    pong.camera = new THREE.PerspectiveCamera( 70, (window.innerWidth-100) / window.innerHeight, 1, 10000 );
     pong.camera.position.set( 0, 0, (pong.box.depth/2)+300 );
     pong.scene.add( pong.camera );
     pong.camera.lookAt( pong.scene.position );
@@ -299,27 +344,33 @@ function checkCollisions() {
             pong.ball.curve.y = 0;
         } else {
             pong.stop=true;
+            pong.score.changeScore(30-(pong.player.width/10));
         }
     }
 
     //check for player collisions if ball is near player's movement plane
     if (ball_near_player) {
        
-        var x_hit = pong.utils.numCloseTo(ball.position.x, pong.player.mesh.position.x,pong.player.width + pong.ball.radius);
-        var y_hit = pong.utils.numCloseTo(ball.position.y, pong.player.mesh.position.y,pong.player.height + pong.ball.radius);
+        var x_hit = pong.utils.numCloseTo(ball.position.x, player.position.x,pong.player.width + pong.ball.radius);
+        var y_hit = pong.utils.numCloseTo(ball.position.y, player.position.y,pong.player.height + pong.ball.radius);
 
-        if ((x_hit && y_hit) || true) {
-            pong.score.changeScore(15-(pong.player.width/10));
-
-            //lower is more accurate/faster movement
-            pong.opponent.follow_factor.x = Math.random()*0.3;
-            pong.opponent.follow_factor.y = Math.random()*0.3;
+        if (x_hit && y_hit) {
             
             var x_slide = getTotalArrayDiff(pong.player.history.x);
             var y_slide = getTotalArrayDiff(pong.player.history.y);
  
             pong.ball.curve.x = x_slide/pong.ball.curve_factor;
             pong.ball.curve.y = y_slide/pong.ball.curve_factor;
+            
+            //lower is more accurate/fast2 movement
+            pong.opponent.follow_factor.x = (Math.random() * 0.25) + Math.abs( pong.ball.curve.x );
+            pong.opponent.follow_factor.y = (Math.random() * 0.25) + Math.abs( pong.ball.curve.y );
+
+            var points = (15-(pong.player.width/10));
+            var curve_points = Math.floor( Math.abs(pong.ball.curve.x + pong.ball.curve.y) *20 ) ;
+            var points_text = curve_points>0 ? "Curveball" : "Hit";
+            pong.score.changeScore( points+curve_points , points_text );
+
             pong.ball.velocity.z*=-1;
             pong.sounds.player.setVolume(90);
             pong.sounds.player.play();

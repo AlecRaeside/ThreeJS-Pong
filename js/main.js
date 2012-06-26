@@ -1,3 +1,21 @@
+/*
+SCORING
+player hit: 15-(player.size/10) 
+eg
+if player.size=90 
+then player hit= 6pts
+if player.size=50
+then player hit=10pts
+
+player hit curve: curve_factor = range[1,4] pts
+
+side hit:1pt
+
+beat opponent: 30pts
+
+*/
+
+
 var HQ = false;
 
 var pong = {

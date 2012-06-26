@@ -74,17 +74,37 @@ var pong = {
     score:  {
         _score: 0,
         _top_score:  0 ,
+        _lives:3,
+        reduceLives: function() {
+            
+            if (this._lives==0) {
+                setTimeout(function() {
+                    window.location.reload()
+                },2000);
+                this.lives_el.html("Game Over. Score: "+this._score).show()
+            } else {
+                this._lives--;
+            }
+            this.displayLives();
+        },
+        displayLives:function() {
+            this.lives_el.html("Lives: "+this._lives)
+        },
         total_el:null,
         top_el:null,
         ticker_el:null,
         init: function() {
-
+            
             this._top_score = localStorage.getItem("pong-top-score") || 0;
+
             pong.score.dom_el = $("#score");
             pong.score.total_el = pong.score.dom_el.find("#score-total");
             pong.score.top_el = pong.score.dom_el.find("#score-top");
             pong.score.ticker_el = pong.score.dom_el.find("#score-ticker");
+            pong.score.lives_el = pong.score.dom_el.find("#score-lives");
+
             pong.score.top_el.html("top score: "+ this._top_score )
+            this.displayLives()
         },
         changeScore:function(score_change,text) {
             //console.log(score_change)
@@ -165,6 +185,7 @@ pong.initializePage = function() {
     $("body").prepend(pong.score.dom_el);
     pong.score.dom_el.css("left",(window.innerWidth/2) + 200)
 
+    pong.state_el = $("#state");
 
 
     setTimeout(function() {
@@ -301,6 +322,7 @@ pong.action = function() {
 
 pong.animate = function() {
     //console.log(1)
+    if (pong.score._lives>=0) {
     if (pong.someone_scored) {
         setTimeout(function() {
             pong.startRound();
@@ -311,6 +333,7 @@ pong.animate = function() {
             $("#state").html("Ready").show(0);
             pong.ball.mesh.position.x=0;
             pong.ball.mesh.position.y=0;
+            pong.ball.mesh.position.z=0;
         },1000);
         pong.someone_scored = false;
         pong.reset_pending = true;
@@ -330,6 +353,7 @@ pong.animate = function() {
         pong.renderer.render( pong.scene, pong.camera );
     
     stats.end()
+    }
 
     
 }
@@ -376,6 +400,7 @@ function checkCollisions() {
             pong.ball.curve.y = 0;
         } else {
             pong.someone_scored = true;
+
             pong.score.changeScore(30-(pong.player.width/10));
         }
     }
@@ -409,6 +434,7 @@ function checkCollisions() {
             pong.sounds.player.play();
         } else {
             pong.someone_scored=true;
+            pong.score.reduceLives();
         }
         
     }
@@ -443,8 +469,8 @@ function moveBall() {
         pong.opponent.mesh.position.x += pong.opponent.follow_factor.x * pong.ball.velocity.x;
         pong.opponent.mesh.position.y += pong.opponent.follow_factor.y * pong.ball.velocity.y;
     } else {
-        pong.opponent.mesh.position.x = 2 
-        pong.opponent.mesh.position.y = 2
+       // pong.opponent.mesh.position.x = 2 
+        //pong.opponent.mesh.position.y = 2
     }
 
     pong.ball.velocity.x+=pong.ball.curve.x;

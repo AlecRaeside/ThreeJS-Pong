@@ -60,13 +60,6 @@ var pong = {
         segments: 16,
         curve_factor : -350,
         velocity:{x:0,y:0,z:0},
-        setInitialVelocity: function() {
-            console.log(Math.random()-0.5) * (pong.ball.speed/2);
-            pong.ball.velocity.x = (Math.random()-0.5) * (pong.ball.speed/2);
-            pong.ball.velocity.y = (Math.random()-0.5) * (pong.ball.speed/2);
-            pong.ball.velocity.z = pong.ball.speed * -1
-            //console.log(pong.ball.velocity)
-        },
         curve: {
             x:0,
             y:0
@@ -78,7 +71,17 @@ var pong = {
         player: new buzz.sound("ballbounce2.mp3"),
         opponent: new buzz.sound("ballbounce2.mp3")
     },
-    score:0,
+    score:  {
+        _score: 0,
+        dom_el:null,
+        changeScore:function(score_change) {
+            this._score+=score_change;
+            this.updateScore()
+        },
+        updateScore:function() {
+            this.dom_el.html(this._score)
+        }
+    },
     stop:false,
     mouse2D : new THREE.Vector2(0, 0),
     mouse3D : new THREE.Vector3(0, 0, 0),
@@ -91,18 +94,12 @@ var pong = {
 
 }
 
+window.onload=function() { 
+    pong.initializePage();
+ }
 
-
-//ball_sound2.setVolume( 20 )
-
-
-window.onload=function() { pong.init();
- };
-
-pong.init = function() {
-
-    pong.ball.setInitialVelocity();
-    console.log(pong.ball.velocity)
+pong.initializePage = function() {
+ 
     stats = new Stats();
     document.body.appendChild( stats.domElement );
 
@@ -122,11 +119,26 @@ pong.init = function() {
     document.body.appendChild( pong.renderer.domElement );
     pong.renderer.domElement.style.cursor = "none"
 
-    pong.score_el = $("<div id=score></div>");
-    $("body").prepend(pong.score_el);
+    pong.score.dom_el = $("<div id=score></div>");
+    $("body").prepend(pong.score.dom_el);
 
+    pong.startRound();
+
+    
+}
+pong.startRound = function() {
+    pong.stop=false;
+    var ball = pong.ball;
+    pong.opponent.mesh.position.x = 0;
+    pong.opponent.mesh.position.y = 0;
+    ball.mesh.position.x = ball.mesh.position.y = ball.mesh.position.z = 0;
+    ball.velocity.x = (Math.random()-0.5) * (ball.speed/2);
+    ball.velocity.y = (Math.random()-0.5) * (ball.speed/2);
+    ball.velocity.z = ball.speed * -1;
+   
     pong.animate();
 }
+
 
 pong.lights = function() {
 
@@ -231,13 +243,12 @@ pong.action = function() {
 
 
 pong.animate = function() {
-    console.log(pong.stop)
     if (!pong.stop) {
         requestAnimationFrame( pong.animate );
     } else {
         setTimeout(function() {
-            window.location.reload()
-        },500)
+            pong.startRound()
+        },1000)
     }
     stats.begin();
     pong.playerMovement();
@@ -248,6 +259,10 @@ pong.animate = function() {
     stats.end()
 }
 function checkCollisions() {
+    var player=pong.player.mesh;
+    var opp=pong.opponent.mesh;
+
+
     if (Math.abs(pong.ball.mesh.position.x) + pong.ball.radius >= pong.box.right.position.x &&
         Math.abs(pong.ball.mesh.position.x) + pong.ball.radius - Math.abs(pong.ball.velocity.x) <= pong.box.right.position.x
         ) {
@@ -289,13 +304,12 @@ function checkCollisions() {
         //console.log(pong.ball.curve_x,pong.ball.curve_y);
 
         if (x_hit && y_hit) {
-            pong.score++;
-            pong.score_el.html(pong.score);
+            pong.score.changeScore(15-(pong.player.width/10));
 
             //lower is more accurate/faster movement
-            pong.opponent.follow_factor.x = Math.random()*0.4;
-            pong.opponent.follow_factor.y = Math.random()*0.4;
-            console.log(pong.opponent.follow_factor)
+            pong.opponent.follow_factor.x = Math.random()*0.3;
+            pong.opponent.follow_factor.y = Math.random()*0.3;
+            
 
             var x_slide = getTotalArrayDiff(pong.player.history.x);
             var y_slide = getTotalArrayDiff(pong.player.history.y);
@@ -347,8 +361,6 @@ function moveBall() {
     pong.ball.mesh.position.y+=pong.ball.velocity.y;
     pong.ball.mesh.position.z+=pong.ball.velocity.z;
     
-
-    console.log(pong.opponent.mesh.position)
     pong.opponent.mesh.position.x += pong.ball.velocity.x-(pong.opponent.follow_factor.x*pong.ball.velocity.x);
     pong.opponent.mesh.position.y += pong.ball.velocity.y-(pong.opponent.follow_factor.y*pong.ball.velocity.y);
 

@@ -30,12 +30,12 @@ var pong = {
     },
     opponent: {
         follow_factor: {
-            x:0,
-            y:0
+            x:1,
+            y:1
         }
     },
     box: {
-        width: 500,
+        width: 550,
         height: 400,
         depth: 1000,
 
@@ -80,10 +80,10 @@ var pong = {
         init: function() {
 
             this._top_score = localStorage.getItem("pong-top-score") || 0;
-            var score_dom_el = $("#score");
-            pong.score.total_el = score_dom_el.find("#score-total");
-            pong.score.top_el = score_dom_el.find("#score-top");
-            pong.score.ticker_el = score_dom_el.find("#score-ticker");
+            pong.score.dom_el = $("#score");
+            pong.score.total_el = pong.score.dom_el.find("#score-total");
+            pong.score.top_el = pong.score.dom_el.find("#score-top");
+            pong.score.ticker_el = pong.score.dom_el.find("#score-ticker");
             pong.score.top_el.html("top score: "+ this._top_score )
         },
         changeScore:function(score_change,text) {
@@ -122,6 +122,7 @@ var pong = {
             },4000);
         }
     },
+    someone_scored:false,
     stop:false,
     mouse2D : new THREE.Vector2(0, 0),
     mouse3D : new THREE.Vector3(0, 0, 0),
@@ -147,7 +148,7 @@ pong.initializePage = function() {
 
     pong.renderer = new THREE.WebGLRenderer();
     //pong.renderer.setSize( window.innerHeight-10, window.innerHeight-10 );
-    pong.renderer.setSize( window.innerWidth-100, window.innerHeight );
+    pong.renderer.setSize( window.innerWidth, window.innerHeight );
     if (HQ) {
         pong.scene.fog = new THREE.FogExp2( 0x000000, 0.0006 );
     }
@@ -162,25 +163,37 @@ pong.initializePage = function() {
     pong.score.init()
 
     $("body").prepend(pong.score.dom_el);
+    pong.score.dom_el.css("left",(window.innerWidth/2) + 200)
 
-    pong.startRound();
 
+
+    setTimeout(function() {
+        pong.startRound();
+
+        
+    },1000);
     
 }
 pong.startRound = function() {
-    pong.stop=false;
+    console.log("start")
+    pong.reset_pending = false;
+    pong.stop_animation = false;
     var ball = pong.ball;
     pong.opponent.mesh.position.x = 0;
     pong.opponent.mesh.position.y = 0;
-    ball.mesh.position.x = ball.mesh.position.y = ball.mesh.position.z = 0;
+    ball.mesh.position.x = 0;
+    ball.mesh.position.y = 0;
+    ball.mesh.position.z = 0;
     ball.velocity.x = (Math.random()-0.5) * (ball.speed/2);
     ball.velocity.y = (Math.random()-0.5) * (ball.speed/2);
     ball.velocity.z = ball.speed * -1;
 
     ball.curve.x = 0;
     ball.curve.y = 0;
-   
-    pong.animate();
+
+   $("#state").html("Go!");
+   $("#state").fadeOut()
+   pong.animate();
 }
 
 
@@ -202,7 +215,7 @@ pong.lights = function() {
 
 
 pong.camera = function () {
-    pong.camera = new THREE.PerspectiveCamera( 70, (window.innerWidth-100) / window.innerHeight, 1, 10000 );
+    pong.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
     pong.camera.position.set( 0, 0, (pong.box.depth/2)+300 );
     pong.scene.add( pong.camera );
     pong.camera.lookAt( pong.scene.position );
@@ -287,20 +300,38 @@ pong.action = function() {
 
 
 pong.animate = function() {
-    if (!pong.stop) {
-        requestAnimationFrame( pong.animate );
-    } else {
+    //console.log(1)
+    if (pong.someone_scored) {
         setTimeout(function() {
-            pong.startRound()
-        },1000)
-    }
-    stats.begin();
-    pong.playerMovement();
+            pong.startRound();
 
-    checkCollisions();
-    moveBall();
-    pong.renderer.render( pong.scene, pong.camera );
+        },2000);
+        setTimeout(function() {
+            pong.stop_animation = true;
+            $("#state").html("Ready").show(0);
+            pong.ball.mesh.position.x=0;
+            pong.ball.mesh.position.y=0;
+        },1000);
+        pong.someone_scored = false;
+        pong.reset_pending = true;
+    }
+    if (!pong.stop_animation) {
+        requestAnimationFrame( pong.animate );
+    }
+    
+    
+    stats.begin();
+       
+        if (!pong.reset_pending) {
+            pong.playerMovement();
+            checkCollisions();
+        }
+        moveBall();
+        pong.renderer.render( pong.scene, pong.camera );
+    
     stats.end()
+
+    
 }
 function checkCollisions() {
     var ball = pong.ball.mesh;
@@ -313,8 +344,9 @@ function checkCollisions() {
     var top_bottom_wall_hit = Math.abs(ball.position.y) + pong.ball.radius >= pong.box.top.position.y &&
                               Math.abs(ball.position.y) + pong.ball.radius - Math.abs(pong.ball.velocity.y) <= pong.box.top.position.y;
 
-    var ball_near_opponent = ball.position.z < (pong.box.depth/2)*-1;
+    //var ball_near_opponent = ball.position.z < (pong.box.depth/2)*-1;
 
+    var ball_near_opponent = pong.ball.velocity.z < 0 && pong.utils.numCloseTo(ball.position.z, (pong.box.depth/2)*-1, pong.ball.speed);
     var ball_near_player = pong.ball.velocity.z > 0 && pong.utils.numCloseTo(ball.position.z, pong.box.depth/2, pong.ball.speed);
 
     if ( left_right_wall_hit ) {
@@ -331,8 +363,8 @@ function checkCollisions() {
     }
     if (ball_near_opponent) {
 
-        var x_hit = pong.utils.numCloseTo(ball.position.x, opp.position.x,pong.player.width + pong.ball.radius);
-        var y_hit = pong.utils.numCloseTo(ball.position.y, opp.position.y,pong.player.height + pong.ball.radius);
+        var x_hit = pong.utils.numCloseTo(ball.position.x, opp.position.x,pong.player.width + (pong.ball.radius*1.5));
+        var y_hit = pong.utils.numCloseTo(ball.position.y, opp.position.y,pong.player.height + (pong.ball.radius*1.5));
 
         if (x_hit && y_hit) {
 
@@ -343,16 +375,15 @@ function checkCollisions() {
             pong.ball.curve.x = 0;
             pong.ball.curve.y = 0;
         } else {
-            pong.stop=true;
+            pong.someone_scored = true;
             pong.score.changeScore(30-(pong.player.width/10));
         }
     }
 
     //check for player collisions if ball is near player's movement plane
     if (ball_near_player) {
-       
-        var x_hit = pong.utils.numCloseTo(ball.position.x, player.position.x,pong.player.width + pong.ball.radius);
-        var y_hit = pong.utils.numCloseTo(ball.position.y, player.position.y,pong.player.height + pong.ball.radius);
+        var x_hit = pong.utils.numCloseTo(ball.position.x, player.position.x,pong.player.width + (pong.ball.radius*1.5));
+        var y_hit = pong.utils.numCloseTo(ball.position.y, player.position.y,pong.player.height + (pong.ball.radius*1.5));
 
         if (x_hit && y_hit) {
             
@@ -362,9 +393,11 @@ function checkCollisions() {
             pong.ball.curve.x = x_slide/pong.ball.curve_factor;
             pong.ball.curve.y = y_slide/pong.ball.curve_factor;
             
-            //lower is more accurate/fast2 movement
-            pong.opponent.follow_factor.x = (Math.random() * 0.25) + Math.abs( pong.ball.curve.x );
-            pong.opponent.follow_factor.y = (Math.random() * 0.25) + Math.abs( pong.ball.curve.y );
+            //pong.opponent.follow_factor.x = (Math.random() * 0.25) + Math.abs( pong.ball.curve.x );
+            //pong.opponent.follow_factor.y = (Math.random() * 0.25) + Math.abs( pong.ball.curve.y );
+            
+            pong.opponent.follow_factor.x = THREE.Math.randFloat(0.85 -  Math.abs( pong.ball.curve.x ), 1.25 + Math.abs( pong.ball.curve.x ));
+            pong.opponent.follow_factor.y = THREE.Math.randFloat(0.85 - Math.abs( pong.ball.curve.y ),1.25 + Math.abs( pong.ball.curve.y ));
 
             var points = (15-(pong.player.width/10));
             var curve_points = Math.floor( Math.abs(pong.ball.curve.x + pong.ball.curve.y) *20 ) ;
@@ -375,7 +408,7 @@ function checkCollisions() {
             pong.sounds.player.setVolume(90);
             pong.sounds.player.play();
         } else {
-            pong.stop=true;
+            pong.someone_scored=true;
         }
         
     }
@@ -406,15 +439,22 @@ function getWallBounceVolume(sphere_z) {
 
 
 function moveBall() {
-    
+    if (!pong.reset_pending) {
+        pong.opponent.mesh.position.x += pong.opponent.follow_factor.x * pong.ball.velocity.x;
+        pong.opponent.mesh.position.y += pong.opponent.follow_factor.y * pong.ball.velocity.y;
+    } else {
+        pong.opponent.mesh.position.x = 2 
+        pong.opponent.mesh.position.y = 2
+    }
+
     pong.ball.velocity.x+=pong.ball.curve.x;
     pong.ball.velocity.y+=pong.ball.curve.y;
+
     pong.ball.mesh.position.x+=pong.ball.velocity.x;
     pong.ball.mesh.position.y+=pong.ball.velocity.y;
     pong.ball.mesh.position.z+=pong.ball.velocity.z;
     
-    pong.opponent.mesh.position.x += pong.ball.velocity.x-(pong.opponent.follow_factor.x*pong.ball.velocity.x);
-    pong.opponent.mesh.position.y += pong.ball.velocity.y-(pong.opponent.follow_factor.y*pong.ball.velocity.y);
+    
 
 
 }

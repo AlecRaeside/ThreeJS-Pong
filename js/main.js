@@ -115,7 +115,6 @@ pong.initializePage = function() {
     pong.camera();
     pong.action();
     
-
     document.body.appendChild( pong.renderer.domElement );
     pong.renderer.domElement.style.cursor = "none"
 
@@ -263,23 +262,29 @@ function checkCollisions() {
     var player = pong.player.mesh;
     var opp = pong.opponent.mesh;
 
+    var left_right_wall_hit = Math.abs(ball.position.x) + pong.ball.radius >= pong.box.right.position.x &&
+                              Math.abs(ball.position.x) + pong.ball.radius - Math.abs(pong.ball.velocity.x) <= pong.box.right.position.x;
 
-    if (Math.abs(ball.position.x) + pong.ball.radius >= pong.box.right.position.x &&
-        Math.abs(ball.position.x) + pong.ball.radius - Math.abs(pong.ball.velocity.x) <= pong.box.right.position.x
-        ) {
+    var top_bottom_wall_hit = Math.abs(ball.position.y) + pong.ball.radius >= pong.box.top.position.y &&
+                              Math.abs(ball.position.y) + pong.ball.radius - Math.abs(pong.ball.velocity.y) <= pong.box.top.position.y;
+
+    var ball_near_opponent = ball.position.z < (pong.box.depth/2)*-1;
+
+    var ball_near_player = pong.ball.velocity.z > 0 && pong.utils.numCloseTo(ball.position.z, pong.box.depth/2, pong.ball.speed);
+
+    if ( left_right_wall_hit ) {
         pong.sounds.top_bottom.setVolume( getWallBounceVolume(ball.position.z) )
         pong.sounds.top_bottom.play();
         pong.ball.velocity.x*=-1;
+        pong.score.changeScore(1)
     }
-    if (Math.abs(ball.position.y) + pong.ball.radius >= pong.box.top.position.y &&
-        Math.abs(ball.position.y) + pong.ball.radius - Math.abs(pong.ball.velocity.y) <= pong.box.top.position.y
-        ) {
-        
+    if ( top_bottom_wall_hit ) {
         pong.ball.velocity.y*=-1;
         pong.sounds.left_right.setVolume( getWallBounceVolume(ball.position.z) )
         pong.sounds.left_right.play();
+        pong.score.changeScore(1)
     }
-    if (ball.position.z < (pong.box.depth/2)*-1) {
+    if (ball_near_opponent) {
 
         var x_hit = pong.utils.numCloseTo(ball.position.x, opp.position.x,pong.player.width + pong.ball.radius);
         var y_hit = pong.utils.numCloseTo(ball.position.y, opp.position.y,pong.player.height + pong.ball.radius);
@@ -296,28 +301,23 @@ function checkCollisions() {
             pong.stop=true;
         }
     }
+
     //check for player collisions if ball is near player's movement plane
-    if (pong.ball.velocity.z > 0 && pong.utils.numCloseTo(ball.position.z, pong.box.depth/2, pong.ball.speed)) {
+    if (ball_near_player) {
        
         var x_hit = pong.utils.numCloseTo(ball.position.x, pong.player.mesh.position.x,pong.player.width + pong.ball.radius);
         var y_hit = pong.utils.numCloseTo(ball.position.y, pong.player.mesh.position.y,pong.player.height + pong.ball.radius);
-        
-        //console.log(pong.ball.curve_x,pong.ball.curve_y);
 
-        if (x_hit && y_hit) {
+        if ((x_hit && y_hit) || true) {
             pong.score.changeScore(15-(pong.player.width/10));
 
             //lower is more accurate/faster movement
             pong.opponent.follow_factor.x = Math.random()*0.3;
             pong.opponent.follow_factor.y = Math.random()*0.3;
             
-
             var x_slide = getTotalArrayDiff(pong.player.history.x);
             var y_slide = getTotalArrayDiff(pong.player.history.y);
-
-            //lower is more curve
-            
-            //console.log(x_slide/curve_factor)
+ 
             pong.ball.curve.x = x_slide/pong.ball.curve_factor;
             pong.ball.curve.y = y_slide/pong.ball.curve_factor;
             pong.ball.velocity.z*=-1;

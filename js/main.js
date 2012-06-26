@@ -365,11 +365,7 @@ function moveBall() {
     pong.opponent.mesh.position.x += pong.ball.velocity.x-(pong.opponent.follow_factor.x*pong.ball.velocity.x);
     pong.opponent.mesh.position.y += pong.ball.velocity.y-(pong.opponent.follow_factor.y*pong.ball.velocity.y);
 
-    //pong.ball_light.position.x = pong.ball.mesh.position.x;
-    //pong.ball_light.position.y = pong.ball.mesh.position.y;
 
-    //pong.ball_light.position.z = pong.ball.mesh.position.z + pong.ball.radius+2;
-    //console.log(pong.ball.mesh.position.x,pong.ball.mesh.position.y,pong.ball.mesh.position.z)
 }
 
 pong.playerMovement = function() {

@@ -76,16 +76,19 @@ var pong = {
         _top_score:  0 ,
         _lives:3,
         reduceLives: function() {
-            
-            if (this._lives==0) {
+            this._lives--;
+            if (this._lives==-1) {
                 setTimeout(function() {
-                    window.location.reload()
+                   // window.location.reload()
                 },2000);
-                this.lives_el.html("Game Over. Score: "+this._score).show()
+                //debugger;
+                pong.state_el.html("Game Over. Score: "+this._score).show()
             } else {
-                this._lives--;
+               
+                this.displayLives();
             }
-            this.displayLives();
+            
+            
         },
         displayLives:function() {
             this.lives_el.html("Lives: "+this._lives)
@@ -196,6 +199,7 @@ pong.initializePage = function() {
     
 }
 pong.startRound = function() {
+    if (pong.score._lives>=0) {
     console.log("start")
     pong.reset_pending = false;
     pong.stop_animation = false;
@@ -215,6 +219,7 @@ pong.startRound = function() {
    $("#state").html("Go!");
    $("#state").fadeOut()
    pong.animate();
+    }
 }
 
 
@@ -401,7 +406,7 @@ function checkCollisions() {
         } else {
             pong.someone_scored = true;
 
-            pong.score.changeScore(30-(pong.player.width/10));
+            pong.score.changeScore(35-(pong.player.width/10),"Scored");
         }
     }
 

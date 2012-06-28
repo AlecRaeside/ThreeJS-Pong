@@ -16,7 +16,7 @@ beat opponent: 30pts
 */
 
 
-var HQ = false;
+var HQ = true;
 
 var pong = {
     player: {
@@ -181,7 +181,7 @@ pong.initializePage = function() {
     pong.action();
     
     document.body.appendChild( pong.renderer.domElement );
-    pong.renderer.domElement.style.cursor = "none"
+    //pong.renderer.domElement.style.cursor = "none"
 
     pong.score.init()
 
@@ -225,16 +225,23 @@ pong.startRound = function() {
 
 pong.lights = function() {
 
+    
+    plight = new THREE.PointLight( 0xffffff,2,1100);
+    plight.position.x = 0;
+    plight.position.y = 0;
+    plight.position.z = pong.box.depth/2;
+    //pong.scene.add( plight );  
+
     light = new THREE.DirectionalLight( 0xffffff,1,400);
     light.position = new THREE.Vector3(2,1,1)
     pong.scene.add( light );  
     light = new THREE.DirectionalLight( 0xffffff,1,400);
     light.position = new THREE.Vector3(-2,1,1)
     pong.scene.add( light );
-    light = new THREE.DirectionalLight( 0xffffff,0.5,400);
+    light = new THREE.DirectionalLight( 0xffffff,0.2,400);
     light.position = new THREE.Vector3(1,-1,1)
     pong.scene.add( light );  
-    light = new THREE.DirectionalLight( 0xffffff,1);
+    light = new THREE.DirectionalLight( 0xffffff,0.2,400);
     light.position = new THREE.Vector3(-1,-1,0)
     pong.scene.add( light ); 
 }
@@ -403,6 +410,8 @@ function checkCollisions() {
             pong.sounds.player.play();
             pong.ball.curve.x = 0;
             pong.ball.curve.y = 0;
+            //pong.opponent.follow_factor.x/=2;
+            //pong.opponent.follow_factor.y/=2;
         } else {
             pong.someone_scored = true;
 
@@ -470,13 +479,17 @@ function getWallBounceVolume(sphere_z) {
 
 
 function moveBall() {
+
     if (!pong.reset_pending) {
+        
         pong.opponent.mesh.position.x += pong.opponent.follow_factor.x * pong.ball.velocity.x;
         pong.opponent.mesh.position.y += pong.opponent.follow_factor.y * pong.ball.velocity.y;
     } else {
        // pong.opponent.mesh.position.x = 2 
         //pong.opponent.mesh.position.y = 2
     }
+
+
 
     pong.ball.velocity.x+=pong.ball.curve.x;
     pong.ball.velocity.y+=pong.ball.curve.y;

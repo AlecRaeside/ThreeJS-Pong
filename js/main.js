@@ -16,7 +16,7 @@ beat opponent: 30pts
 */
 
 
-var HQ = true;
+var HQ = false;
 
 var pong = {
     player: {
@@ -38,14 +38,17 @@ var pong = {
         width: 550,
         height: 400,
         depth: 1000,
-
+        side_count:0,
         side:function(size) {
+            pong.box.side_count++;
             var object = new THREE.Mesh( 
                                 new THREE.CubeGeometry(size,1,pong.box.depth),
                                 new THREE.MeshLambertMaterial({
-                                    ambient:0xffffff,
-                                    color: Math.random()*0xffffff,
-                                    specular:Math.random()*0xffffff, 
+                                    //ambient:0xffffff,
+                                    map:THREE.ImageUtils.loadTexture( pong.box.side_count%2 === 0 ? "floor2.jpg" : "diamond_upholstery.jpg"),
+                                    //color: 0xffffff,
+                                    //color: Math.random()*0xffffff,
+                                    //specular:Math.random()*0xffffff, 
                                     shininess:40,
                                     shading: THREE.SmoothShading 
                                 })
@@ -57,7 +60,7 @@ var pong = {
     ball: {
         radius: 16,
         speed: 15,
-        segments: 16,
+        segments: 8,
         curve_factor : -350,
         velocity:{x:0,y:0,z:0},
         curve: {
@@ -171,7 +174,7 @@ pong.initializePage = function() {
 
     pong.renderer = new THREE.WebGLRenderer();
     //pong.renderer.setSize( window.innerHeight-10, window.innerHeight-10 );
-    pong.renderer.setSize( window.innerWidth, window.innerHeight );
+    pong.renderer.setSize( window.innerWidth-10, window.innerHeight -10);
     if (HQ) {
         pong.scene.fog = new THREE.FogExp2( 0x000000, 0.0006 );
     }
@@ -186,7 +189,7 @@ pong.initializePage = function() {
     pong.score.init()
 
     $("body").prepend(pong.score.dom_el);
-    pong.score.dom_el.css("left",(window.innerWidth/2) + 200)
+    pong.score.dom_el.css("left",(window.innerWidth/2) + 300)
 
     pong.state_el = $("#state");
 
@@ -230,19 +233,22 @@ pong.lights = function() {
     plight.position.x = 0;
     plight.position.y = 0;
     plight.position.z = pong.box.depth/2;
-    //pong.scene.add( plight );  
+   // pong.scene.add( plight );  
 
     light = new THREE.DirectionalLight( 0xffffff,1,400);
-    light.position = new THREE.Vector3(2,1,1)
-    pong.scene.add( light );  
+    light.position = new THREE.Vector3(1,1,1)
+    //pong.scene.add( light );  
     light = new THREE.DirectionalLight( 0xffffff,1,400);
     light.position = new THREE.Vector3(-2,1,1)
-    pong.scene.add( light );
-    light = new THREE.DirectionalLight( 0xffffff,0.2,400);
+    //pong.scene.add( light );
+    light = new THREE.DirectionalLight( 0xffffff,0.5,400);
     light.position = new THREE.Vector3(1,-1,1)
-    pong.scene.add( light );  
-    light = new THREE.DirectionalLight( 0xffffff,0.2,400);
+    //pong.scene.add( light );  
+    light = new THREE.DirectionalLight( 0xffffff,0.5,400);
     light.position = new THREE.Vector3(-1,-1,0)
+    //pong.scene.add( light ); 
+    
+    light = new THREE.AmbientLight( 0xffffff);
     pong.scene.add( light ); 
 }
 
@@ -352,6 +358,7 @@ pong.animate = function() {
     }
     if (!pong.stop_animation) {
         requestAnimationFrame( pong.animate );
+        //setTimeout( pong.animate,1000/60 );
     }
     
     
@@ -363,7 +370,7 @@ pong.animate = function() {
         }
         moveBall();
         pong.renderer.render( pong.scene, pong.camera );
-    
+        //console.log(1)
     stats.end()
     }
 
@@ -387,14 +394,14 @@ function checkCollisions() {
 
     if ( left_right_wall_hit ) {
         pong.sounds.top_bottom.setVolume( getWallBounceVolume(ball.position.z) )
-        pong.sounds.top_bottom.play();
+        //pong.sounds.top_bottom.play();
         pong.ball.velocity.x*=-1;
         pong.score.changeScore(1)
     }
     if ( top_bottom_wall_hit ) {
         pong.ball.velocity.y*=-1;
         pong.sounds.left_right.setVolume( getWallBounceVolume(ball.position.z) )
-        pong.sounds.left_right.play();
+        //pong.sounds.left_right.play();
         pong.score.changeScore(1)
     }
     if (ball_near_opponent) {
@@ -407,7 +414,7 @@ function checkCollisions() {
             pong.ball.velocity.z*=-1;
 
             pong.sounds.player.setVolume(18);
-            pong.sounds.player.play();
+           // pong.sounds.player.play();
             pong.ball.curve.x = 0;
             pong.ball.curve.y = 0;
             //pong.opponent.follow_factor.x/=2;
@@ -445,7 +452,7 @@ function checkCollisions() {
 
             pong.ball.velocity.z*=-1;
             pong.sounds.player.setVolume(90);
-            pong.sounds.player.play();
+            //pong.sounds.player.play();
         } else {
             pong.someone_scored=true;
             pong.score.reduceLives();
@@ -468,7 +475,7 @@ function getTotalArrayDiff(arr) {
     if (total < -100) {
         total=-100;
     }
-    if (Math.abs(total)<20) {
+    if (Math.abs(total)<30) {
         total=0;
     }
     return total;

@@ -45,7 +45,7 @@ var pong = {
                                 new THREE.CubeGeometry(size,1,pong.box.depth),
                                 new THREE.MeshLambertMaterial({
                                     //ambient:0xffffff,
-                                    map:THREE.ImageUtils.loadTexture( pong.box.side_count%2 === 0 ? "floor2.jpg" : "diamond_upholstery.jpg"),
+                                    map:THREE.ImageUtils.loadTexture( pong.box.side_count%2 === 0 ? "floor.jpg" : "tex2res4.png"),
                                     //color: 0xffffff,
                                     //color: Math.random()*0xffffff,
                                     //specular:Math.random()*0xffffff, 
@@ -60,13 +60,17 @@ var pong = {
     ball: {
         radius: 16,
         speed: 15,
-        segments: 8,
+        segments: 16,
         curve_factor : -350,
         velocity:{x:0,y:0,z:0},
         curve: {
             x:0,
             y:0
         },
+        spin: {
+            x:0,
+            y:0
+        }
     },
     sounds: {
         left_right: new buzz.sound("ballbounce.wav"),
@@ -212,12 +216,17 @@ pong.startRound = function() {
     ball.mesh.position.x = 0;
     ball.mesh.position.y = 0;
     ball.mesh.position.z = 0;
+    ball.mesh.rotation.x = 0;
+    ball.mesh.rotation.y = 0;
+    ball.mesh.rotation.z = 0;
     ball.velocity.x = (Math.random()-0.5) * (ball.speed/2);
     ball.velocity.y = (Math.random()-0.5) * (ball.speed/2);
     ball.velocity.z = ball.speed * -1;
 
     ball.curve.x = 0;
     ball.curve.y = 0;
+    ball.spin.x = 0;
+    ball.spin.y = 0;
 
    $("#state").html("Go!");
    $("#state").fadeOut()
@@ -254,8 +263,8 @@ pong.lights = function() {
 
 
 pong.camera = function () {
-    pong.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
-    pong.camera.position.set( 0, 0, (pong.box.depth/2)+300 );
+    pong.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
+    pong.camera.position.set( 0, 0, (pong.box.depth/2)+350 );
     pong.scene.add( pong.camera );
     pong.camera.lookAt( pong.scene.position );
 }
@@ -309,9 +318,10 @@ pong.action = function() {
 
     pong.ball.mesh = new THREE.Mesh(new THREE.SphereGeometry(pong.ball.radius, pong.ball.segments, pong.ball.segments), 
          new THREE.MeshLambertMaterial({
-                            ambient: 0xffffff,
-                            color: 0xffffff,
-                            specular:0xffffff, 
+                            //ambient: 0xffffff,
+                            //color: 0xffffff,
+                            //specular:0xffffff, 
+                            map:THREE.ImageUtils.loadTexture("ball2.jpg"),
                             shininess: 10, 
                             shading: THREE.SmoothShading 
                         })
@@ -392,17 +402,23 @@ function checkCollisions() {
     var ball_near_opponent = pong.ball.velocity.z < 0 && pong.utils.numCloseTo(ball.position.z, (pong.box.depth/2)*-1, pong.ball.speed);
     var ball_near_player = pong.ball.velocity.z > 0 && pong.utils.numCloseTo(ball.position.z, pong.box.depth/2, pong.ball.speed);
 
+    if ( left_right_wall_hit || top_bottom_wall_hit) {
+        
+
+        pong.ball.spin.x /= 2;
+        pong.ball.spin.y /= 2;
+
+        pong.score.changeScore(1)
+    }
     if ( left_right_wall_hit ) {
+        pong.ball.velocity.x*=-1;
         pong.sounds.top_bottom.setVolume( getWallBounceVolume(ball.position.z) )
         //pong.sounds.top_bottom.play();
-        pong.ball.velocity.x*=-1;
-        pong.score.changeScore(1)
     }
     if ( top_bottom_wall_hit ) {
         pong.ball.velocity.y*=-1;
         pong.sounds.left_right.setVolume( getWallBounceVolume(ball.position.z) )
         //pong.sounds.left_right.play();
-        pong.score.changeScore(1)
     }
     if (ball_near_opponent) {
 
@@ -415,8 +431,10 @@ function checkCollisions() {
 
             pong.sounds.player.setVolume(18);
            // pong.sounds.player.play();
-            pong.ball.curve.x = 0;
+            pong.ball.curve.x = 0 ;
             pong.ball.curve.y = 0;
+            pong.ball.spin.x /= 2;
+            pong.ball.spin.y /= 2;
             //pong.opponent.follow_factor.x/=2;
             //pong.opponent.follow_factor.y/=2;
         } else {
@@ -439,8 +457,8 @@ function checkCollisions() {
             pong.ball.curve.x = x_slide/pong.ball.curve_factor;
             pong.ball.curve.y = y_slide/pong.ball.curve_factor;
             
-            //pong.opponent.follow_factor.x = (Math.random() * 0.25) + Math.abs( pong.ball.curve.x );
-            //pong.opponent.follow_factor.y = (Math.random() * 0.25) + Math.abs( pong.ball.curve.y );
+            pong.ball.spin.x += pong.ball.curve.y*2;
+            pong.ball.spin.y += pong.ball.curve.x*-2;
             
             pong.opponent.follow_factor.x = THREE.Math.randFloat(0.85 -  Math.abs( pong.ball.curve.x ), 1.25 + Math.abs( pong.ball.curve.x ));
             pong.opponent.follow_factor.y = THREE.Math.randFloat(0.85 - Math.abs( pong.ball.curve.y ),1.25 + Math.abs( pong.ball.curve.y ));
@@ -506,7 +524,9 @@ function moveBall() {
     pong.ball.mesh.position.z+=pong.ball.velocity.z;
     
     
-
+    pong.ball.mesh.rotation.x+=pong.ball.spin.x
+    //console.log(pong.ball.spin.x)
+    pong.ball.mesh.rotation.y+=pong.ball.spin.y
 
 }
 

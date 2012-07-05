@@ -18,6 +18,7 @@ beat opponent: 30pts
 
 var HQ = false;
 
+
 var pong = {
     player: {
         width: 100,
@@ -165,17 +166,15 @@ var pong = {
 
 }
 
-window.onload=function() { 
+$(function() {
+   
     pong.initializePage();
- }
+});
 
-   function movement(position) {
-        console.log(position.x,position.y);
-    }
+
 pong.initializePage = function() {
 
-    kinesis = new Kinesis;
-    Kinesis.cursor = movement;
+ 
 
     stats = new Stats();
     document.body.appendChild( stats.domElement );

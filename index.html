@@ -5,19 +5,13 @@
 <head>
     <title>3D Pong - Three.js</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" type="text/css" href="http://cdn.kinesis.io/kinesis.css">
    
-    <script src="js/Three.js"></script>
-    <script src="js/jquery-1.7.2.min.js"></script>
-    <script src="js/KeyboardState.js"></script>
-    <script src="js/Stats.js"></script>
-     <script src="http://cdn.kinesis.io/kinesis-js-sdk.min.js"></script>
-    <script src="js/buzz.js"></script>
-   
-    <script src="js/main.js"></script>
-
+    
 </head>
 
 <body>
+    
 <div id="score">
     <div id="score-top">
     </div>
@@ -32,6 +26,43 @@
 
 <div id="state">Ready</div>
 
+
+<script src="js/Three.js"></script>
+    <script src="js/jquery-1.7.2.min.js"></script>
+    <script src="js/KeyboardState.js"></script>
+    <script src="js/Stats.js"></script>
+     <script src="http://cdn.kinesis.io/kinesis-js-sdk.min.js"></script>
+          
+    <script src="js/buzz.js"></script>
+   
+    <script src="js/main.js"></script>
+
+          <script type="text/javascript">
+          pong.kinectMove = function(position) {
+            
+            pong.mouse3D.x = pong.mouse2D.x = (position.x / window.innerWidth) * 2 - 1;
+            pong.mouse3D.y = pong.mouse2D.y = -(position.y/ window.innerHeight) * 2 + 1;
+            pong.mouse3D.z = 0.5;
+            var projector = new THREE.Projector();
+            projector.unprojectVector(pong.mouse3D, pong.camera);
+
+            var ray = new THREE.Ray(pong.camera.position, pong.mouse3D.subSelf(pong.camera.position).normalize());
+
+            var intersects = ray.intersectObject(pong.player.plane);
+
+            if (intersects.length > 0) {
+                var intersect = intersects[0];
+                pong.player.mesh.position.x = intersect.point.x;
+                pong.player.mesh.position.y = intersect.point.y;
+            }
+        }
+          kinesis = new Kinesis;
+          Kinesis.debug = true;
+
+          Kinesis.cursor = pong.kinectMove;
+          
+      </script>
+ 
 </body>
 
 </html>

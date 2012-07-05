@@ -169,8 +169,14 @@ window.onload=function() {
     pong.initializePage();
  }
 
+   function movement(position) {
+        console.log(position.x,position.y);
+    }
 pong.initializePage = function() {
- 
+
+    kinesis = new Kinesis;
+    Kinesis.cursor = movement;
+
     stats = new Stats();
     document.body.appendChild( stats.domElement );
 

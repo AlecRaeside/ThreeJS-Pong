@@ -45,7 +45,7 @@ var pong = {
                                 new THREE.CubeGeometry(size,1,pong.box.depth),
                                 new THREE.MeshLambertMaterial({
                                     //ambient:0xffffff,
-                                    map:THREE.ImageUtils.loadTexture( pong.box.side_count%2 === 0 ? "floor.jpg" : "tex2res4.png"),
+                                    map:THREE.ImageUtils.loadTexture( pong.box.side_count%2 === 0 ? "laminate-texture.jpg" : "wood-wall-texture.jpg"),
                                     //color: 0xffffff,
                                     //color: Math.random()*0xffffff,
                                     //specular:Math.random()*0xffffff, 
@@ -165,8 +165,12 @@ var pong = {
 
 }
 
-window.onload=function() { 
-    pong.initializePage();
+window.onload=function() {
+    if ( ! Detector.webgl )  {
+        Detector.addGetWebGLMessage(); 
+    } else {
+        pong.initializePage();
+    }
  }
 
 pong.initializePage = function() {
@@ -193,7 +197,7 @@ pong.initializePage = function() {
     pong.score.init()
 
     $("body").prepend(pong.score.dom_el);
-    pong.score.dom_el.css("left",(window.innerWidth/2) + 300)
+    pong.score.dom_el.css("right",120)
 
     pong.state_el = $("#state");
 
@@ -303,7 +307,7 @@ pong.action = function() {
                      new THREE.CubeGeometry(pong.player.width,pong.player.height,pong.player.thickness),
                      
                      new THREE.MeshLambertMaterial({
-                        color: 0xff5555,
+                        ambient: 0xff5555,
                         shading: THREE.SmoothShading 
                     })
             );
@@ -318,10 +322,10 @@ pong.action = function() {
 
     pong.ball.mesh = new THREE.Mesh(new THREE.SphereGeometry(pong.ball.radius, pong.ball.segments, pong.ball.segments), 
          new THREE.MeshLambertMaterial({
-                            //ambient: 0xffffff,
+                            //ambient: 0xff0000,
                             //color: 0xffffff,
                             //specular:0xffffff, 
-                            map:THREE.ImageUtils.loadTexture("ball2.jpg"),
+                            map:THREE.ImageUtils.loadTexture("ball11.jpg"),
                             shininess: 10, 
                             shading: THREE.SmoothShading 
                         })
